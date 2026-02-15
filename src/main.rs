@@ -1,29 +1,13 @@
 use std::env;
-use std::fs;
 use std::path::Path;
 use std::f32::consts::PI;
-use std::time::{SystemTime, Duration};
 
 use hound::{WavReader, WavWriter, WavSpec, SampleFormat};
 
 // read shi
-fn load_audio(path: &str, isolation_mode: bool) -> Option<(Vec<f32>, u32)> {
+fn load_audio(path: &str) -> Option<(Vec<f32>, u32)> {
     let path_obj = Path::new(path);
     if !path_obj.exists() { return None; }
-
-    //  ignore accumulate buffer if older than 2 seconds
-    if isolation_mode {
-        if let Ok(metadata) = fs::metadata(path_obj) {
-            if let Ok(modified) = metadata.modified() {
-                if let Ok(elapsed) = SystemTime::now().duration_since(modified) {
-                    if elapsed > Duration::from_secs(2) {
-                        let _ = fs::remove_file(path);
-                        return None;
-                    }
-                }
-            }
-        }
-    }
 
     let mut reader = WavReader::open(path).ok()?;
     let sr = reader.spec().sample_rate;
@@ -200,7 +184,7 @@ fn main() {
         if let Ok(v) = s.parse::<f32>() { env_args.push(v); }
     }
 
-    let (raw_note, sr) = match load_audio(infile, false) {
+    let (raw_note, sr) = match load_audio(infile) {
         Some(x) => x,
         None => return,
     };
@@ -213,7 +197,7 @@ fn main() {
     let (p_list, v_gain, ove_ms) = parse_envelope(&env_args, effective_length_ms);
     let ovr = ms_to_samples(ove_ms, sr);
 
-    let mut existing = load_audio(outfile, true).map(|x| x.0).unwrap_or_else(Vec::new);
+    let mut existing = load_audio(outfile).map(|x| x.0).unwrap_or_else(Vec::new);
     let mut best_start = base_start;
 
     // shift the start point
