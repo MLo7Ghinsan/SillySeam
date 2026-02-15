@@ -1,0 +1,64 @@
+name: Build
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      # Windows
+      - name: Build (Windows exe)
+        if: runner.os == 'Windows'
+        run: cargo build --release --locked
+
+      # macOS/Linux
+      - name: Install cargo-bundle
+        if: runner.os != 'Windows'
+        run: cargo install cargo-bundle
+
+      - name: Bundle (macOS/Linux)
+        if: runner.os != 'Windows'
+        run: cargo bundle --release
+
+      # Upload artifacts
+      - name: Upload (Windows exe)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: SillySeams-windows
+          path: target/release/SillySeams.exe
+
+      - name: Upload (macOS .app)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: SillySeams-macos-app
+          path: target/release/bundle/osx/*.app
+
+      - name: Upload (Linux packages)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: SillySeams-linux
+          path: |
+            target/release/bundle/deb/*.deb
+            target/release/bundle/rpm/*.rpm
