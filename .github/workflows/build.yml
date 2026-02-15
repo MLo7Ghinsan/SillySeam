@@ -35,7 +35,7 @@ jobs:
         if: runner.os != 'Windows'
         run: cargo install cargo-bundle
 
-      - name: Linux: remove .icns from icon list
+      - name: Linux remove .icns from icon list
         if: runner.os == 'Linux'
         run: |
           sed -i 's/"jiafei.icns",\s*//g' Cargo.toml
